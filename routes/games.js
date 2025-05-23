@@ -112,6 +112,9 @@ router.get("/", async (req, res) => {
 			}
 		}
 
+		console.log(`[Game List Query] Type: '${type}', StatusFilter: '${status_filter}', User: '${loggedInUserId}'`);
+    		console.log("[Game List Query] Constructed MongoDB Query:", JSON.stringify(query, null, 2));
+		
 		const games = await Game.find(query)
 			.populate("player1", "username")
 			.populate("player2", "username")
