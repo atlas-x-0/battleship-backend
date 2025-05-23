@@ -25,7 +25,7 @@ const shipSchema = new mongoose.Schema(shipSchemaDefinition, { _id: false });
 const cellSchema = new mongoose.Schema({
     status: {
         type: String,
-        enum: ['empty', 'ship', 'hit', 'miss'], // 'empty': 未被攻击的水域, 'ship': 未被攻击的船只部分, 'hit': 击中, 'miss': 未击中
+        enum: ['empty', 'ship', 'hit', 'miss'], 
         default: 'empty', 
         required: true
     }
