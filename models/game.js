@@ -23,8 +23,12 @@ const shipSchema = new mongoose.Schema(shipSchemaDefinition, { _id: false });
 
 // Schema for individual board cell
 const cellSchema = new mongoose.Schema({
-    isShip: { type: Boolean, default: false }, // Whether a part of a ship is on this cell
-    isHit: { type: Boolean, default: false },  // Whether this cell has been attacked
+    status: {
+        type: String,
+        enum: ['empty', 'ship', 'hit', 'miss'], // 'empty': 未被攻击的水域, 'ship': 未被攻击的船只部分, 'hit': 击中, 'miss': 未击中
+        default: 'empty', 
+        required: true
+    }
     // shipNameRef: { type: String, default: null } // Refers to the name of ship in ships array
     // If ship types repeat (e.g., two destroyers), using name as ref is not unique enough.
     // Consider adding a unique id in shipSchema (not _id, could be UUID or a simple counter)
