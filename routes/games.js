@@ -60,72 +60,23 @@ router.get("/", async (req, res) => {
 	const { type, status_filter } = req.query;
 	const loggedInUserId = req.user ? req.user.id : null;
 
-	try {
-		let query = {};
+	    try {
+        // console.log("[GET /api/games - Simplified] Request received."); 
 
-		if (loggedInUserId) {
-			switch (type) {
-				case "my_open":
-					query = { status: "Open", player1: loggedInUserId, player2: null };
-					break;
-				case "open_for_others":
-					query = {
-						status: "Open",
-						player1: { $ne: loggedInUserId },
-						player2: null,
-					};
-					break;
-				case "my_active":
-					query = {
-						status: "Active",
-						$or: [{ player1: loggedInUserId }, { player2: loggedInUserId }],
-					};
-					break;
-				case "my_completed":
-					query = {
-						status: "Completed",
-						$or: [{ player1: loggedInUserId }, { player2: loggedInUserId }],
-					};
-					break;
-				case "other_games":
-					query = {
-						status: { $in: ["Active", "Completed"] },
-						player1: { $ne: loggedInUserId },
-						player2: { $ne: loggedInUserId },
-						$or: [{ player2: { $ne: null } }, { status: "Completed" }],
-					};
-					break;
-				default:
-					query = {
-						$or: [{ player1: loggedInUserId }, { player2: loggedInUserId }],
-					};
-					if (!type)
-						query = {
-							$or: [query, { status: { $in: ["Active", "Completed"] } }],
-						};
-			}
-		} else {
-			if (status_filter === "Active" || status_filter === "Completed") {
-				query = { status: status_filter };
-			} else {
-				query = { status: { $in: ["Active", "Completed"] } };
-			}
-		}
+        const games = await Game.find({})
+            .populate("player1", "username")
+            .populate("player2", "username")
+            .populate("winner", "username")
+            .sort({ createdAt: -1 })   
+            .limit(100);               
 
-		console.log(`[Game List Query] Type: '${type}', StatusFilter: '${status_filter}', User: '${loggedInUserId}'`);
-    		console.log("[Game List Query] Constructed MongoDB Query:", JSON.stringify(query, null, 2));
-		
-		const games = await Game.find(query)
-			.populate("player1", "username")
-			.populate("player2", "username")
-			.populate("winner", "username")
-			.sort({ createdAt: -1 });
+        console.log(`[GET /api/games - Simplified] Returning ${games.length} games.`);
+        res.json(games);
 
-		res.json(games);
-	} catch (err) {
-		console.error("Error getting game list:", err.message, err.stack);
-		res.status(500).send("Server error");
-	}
+    } catch (err) {
+        console.error("Error getting simplified game list:", err.message, err.stack);
+        res.status(500).send("Server error");
+    }
 });
 
 // @route   GET /api/games/:gameId
