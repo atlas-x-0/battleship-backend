@@ -29,16 +29,28 @@ router.post("/", authMiddleware, async (req, res) => {
 				.json({ msg: "Valid ship layout and board cell status required" });
 		}
 
+		// Process board1_cells from frontend's isShip format to new status format
+		const processedBoard1Cells = ships1Layout.boardCells.map(row =>
+			row.map(cell => ({
+				status: cell.isShip ? 'ship' : 'empty' 
+			}))
+		);
+
+		// Initialize board2_cells as all 'empty'
+		const emptyBoardCells = Array(BOARD_ROWS).fill(null).map(() =>
+			Array(BOARD_COLS).fill(null).map(() => ({ status: 'empty' }))
+		);
+
 		const newGame = new Game({
 			player1: userId,
 			ships1: ships1Layout.ships,
-			board1_cells: ships1Layout.boardCells,
-			board2_cells: [],
+			board1_cells: processedBoard1Cells, // Use processed board
+			board2_cells: emptyBoardCells,       // Player 2's board is initially all empty
 			ships2: [],
 			status: "Open",
 			turn: userId,
 			createdAt: new Date(),
-			startedAt: new Date(),
+			startedAt: new Date(), // Consider if startedAt should be set when game becomes Active
 		});
 
 		await newGame.save();
@@ -142,9 +154,16 @@ router.put("/:gameId/join", authMiddleware, async (req, res) => {
 			return res.status(400).json({ msg: "This game is not open to join" });
 		}
 
+		// Process board2_cells from frontend's isShip format to new status format
+		const processedBoard2Cells = ships2Layout.boardCells.map(row =>
+			row.map(cell => ({
+				status: cell.isShip ? 'ship' : 'empty' 
+			}))
+		);
+
 		game.player2 = userId;
 		game.ships2 = ships2Layout.ships;
-		game.board2_cells = ships2Layout.boardCells;
+		game.board2_cells = processedBoard2Cells; // Use processed board
 		game.status = "Active";
 
 		await game.save();
@@ -168,7 +187,7 @@ router.post("/:gameId/attack", authMiddleware, async (req, res) => {
 		const {
 			targetPlayerId,
 			coordinates,
-			hit,
+			hit, // This is determined by the frontend
 			sunkShipName,
 			allPlayerShipsSunk,
 		} = req.body;
@@ -178,7 +197,7 @@ router.post("/:gameId/attack", authMiddleware, async (req, res) => {
 		}
 		if (
 			coordinates === undefined ||
-			typeof hit !== "boolean" ||
+			typeof hit !== "boolean" || // hit is crucial
 			typeof allPlayerShipsSunk !== "boolean"
 		) {
 			return res.status(400).json({ msg: "Attack request data incomplete" });
@@ -197,7 +216,6 @@ router.post("/:gameId/attack", authMiddleware, async (req, res) => {
 
 		let defendingPlayerBoardCells;
 		let defendingPlayerShips;
-		let nextTurnPlayerId;
 		const attackerIsPlayer1 = game.player1.toString() === attackerId;
 		const attackerIsPlayer2 =
 			game.player2 && game.player2.toString() === attackerId;
@@ -212,11 +230,9 @@ router.post("/:gameId/attack", authMiddleware, async (req, res) => {
 		if (game.player1.toString() === targetPlayerId) {
 			defendingPlayerBoardCells = game.board1_cells;
 			defendingPlayerShips = game.ships1;
-			nextTurnPlayerId = game.player1.toString();
 		} else if (game.player2 && game.player2.toString() === targetPlayerId) {
 			defendingPlayerBoardCells = game.board2_cells;
 			defendingPlayerShips = game.ships2;
-			nextTurnPlayerId = game.player2.toString();
 		} else {
 			return res.status(400).json({ msg: "Invalid target player" });
 		}
@@ -230,12 +246,15 @@ router.post("/:gameId/attack", authMiddleware, async (req, res) => {
 			return res.status(400).json({ msg: "Invalid attack coordinates" });
 		}
 
-		if (defendingPlayerBoardCells[coordinates.y][coordinates.x].isHit) {
+		// Check current status of the target cell
+		const currentCellStatus = defendingPlayerBoardCells[coordinates.y][coordinates.x].status;
+		if (currentCellStatus === 'hit' || currentCellStatus === 'miss') {
 			return res.status(400).json({ msg: "This cell has already been attacked" });
 		}
-		defendingPlayerBoardCells[coordinates.y][coordinates.x].isHit = true;
+
+		// Update cell status based on frontend's hit determination
 		if (hit) {
-			defendingPlayerBoardCells[coordinates.y][coordinates.x].isShip = true;
+			defendingPlayerBoardCells[coordinates.y][coordinates.x].status = 'hit';
 			if (sunkShipName) {
 				const shipToUpdate = defendingPlayerShips.find(
 					(ship) => ship.name === sunkShipName && !ship.sunk,
@@ -244,6 +263,8 @@ router.post("/:gameId/attack", authMiddleware, async (req, res) => {
 					shipToUpdate.sunk = true;
 				}
 			}
+		} else {
+			defendingPlayerBoardCells[coordinates.y][coordinates.x].status = 'miss';
 		}
 
 		if (game.player1.toString() === targetPlayerId) {
@@ -268,7 +289,7 @@ router.post("/:gameId/attack", authMiddleware, async (req, res) => {
 			if (attackerIsPlayer1 && game.player2)
 				game.turn = game.player2.toString();
 			else if (attackerIsPlayer2) game.turn = game.player1.toString();
-			else game.turn = null;
+			else game.turn = null; // Should not happen in a 2-player game unless one drops
 		}
 
 		await game.save();
