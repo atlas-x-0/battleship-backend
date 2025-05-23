@@ -33,7 +33,7 @@ router.post("/", authMiddleware, async (req, res) => {
 			player1: userId,
 			ships1: ships1Layout.ships,
 			board1_cells: ships1Layout.boardCells,
-			board2_cells: initializeEmptyBoardCells(),
+			board2_cells: [],
 			ships2: [],
 			status: "Open",
 			turn: userId,
