@@ -8,7 +8,8 @@ import authMiddleware from "../middleware/auth.js";
 const router = express.Router();
 
 
-
+const BOARD_ROWS = 10;
+const BOARD_COLS = 10;
 
 // @route   POST /api/games
 // @desc    Create a new game (simplified - receives ship layout from client)
