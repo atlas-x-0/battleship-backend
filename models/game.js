@@ -13,6 +13,10 @@ const shipSchemaDefinition = { // Define the object separately for easy referenc
         enum: ['horizontal', 'vertical'],
         required: true
     },
+    occupiedCells: [{ // Array of {x, y} coordinates for all cells the ship occupies
+        x: { type: Number, required: true },
+        y: { type: Number, required: true }
+    }],
     // To determine if a ship is sunk, we need to know which parts of the ship have been hit.
     // We can use a boolean array of the same length as the ship to mark which parts have been hit.
     // Alternatively, a simpler way is to mark sunk=true when all the ship's cells in boardX_cells have isHit=true.
